@@ -2,6 +2,11 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { LoginFormData, RegisterFormData } from "@/lib/auth";
 
+interface Seat {
+  seatNumber: number;
+  isBooked: boolean;
+}
+
 export async function getUser(email: string) {
   try {
     const user = await db.user.findUnique({
@@ -65,5 +70,65 @@ export async function getSeatLayout() {
     return [];
   } finally {
     await db.$disconnect();
+  }
+}
+
+export async function bookSeats(numberOfSeats: number, userId: string) {
+  try {
+    // Find first available consecutive seats
+    const availableSeats = await db.seat.findMany({
+      where: {
+        isBooked: false,
+      },
+      orderBy: {
+        seatNumber: "asc",
+      },
+      take: numberOfSeats,
+    });
+
+    if (availableSeats.length < numberOfSeats) {
+      throw new Error("Not enough consecutive seats available");
+    }
+
+    // Book the seats
+    const bookingId = Math.random().toString(36).substring(7);
+    await db.seat.updateMany({
+      where: {
+        seatNumber: {
+          in: availableSeats.map((seat: Seat) => seat.seatNumber),
+        },
+      },
+      data: {
+        isBooked: true,
+        bookingId,
+        userId,
+      },
+    });
+
+    return {
+      bookingId,
+      seats: availableSeats.map((seat: Seat) => seat.seatNumber),
+    };
+  } catch (error) {
+    console.error("Booking Error:", error);
+    throw error;
+  }
+}
+
+export async function resetBooking(bookingId: string) {
+  try {
+    await db.seat.updateMany({
+      where: {
+        bookingId,
+      },
+      data: {
+        isBooked: false,
+        bookingId: null,
+        userId: null,
+      },
+    });
+  } catch (error) {
+    console.error("Reset Booking Error:", error);
+    throw error;
   }
 }
