@@ -1,5 +1,5 @@
+import { Navbar } from "@/components/common/navbar";
 import { getSeatLayout } from "@/lib/actions/db";
-import Navbar from "@/components/common/navbar";
 
 type Seat = {
   seatNumber: number;
