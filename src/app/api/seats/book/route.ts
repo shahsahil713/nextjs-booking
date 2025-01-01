@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import {
   bookSeats,
-  findConsecutiveSeats,
+  findConsecutiveSeatsInRow,
   markSeatsInProgress,
 } from "@/lib/actions/db";
 
@@ -16,9 +16,7 @@ export async function POST(request: Request) {
 
   try {
     const { numberOfSeats } = await request.json();
-
-    // 1. Find consecutive available seats
-    const availableSeats = await findConsecutiveSeats(numberOfSeats);
+    const availableSeats = await findConsecutiveSeatsInRow(numberOfSeats);
     if (!availableSeats) {
       return NextResponse.json(
         { error: "Not enough consecutive seats available" },
@@ -26,11 +24,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Mark seats as "in-progress" to prevent race conditions
-    await markSeatsInProgress(availableSeats);
+    const seatNumbers = availableSeats.map((seat) => seat.seatNumber);
+    // Mark seats as in-progress
+    await markSeatsInProgress(seatNumbers);
 
-    // 3. Process booking - Pass numberOfSeats instead of availableSeats array
-    const bookedSeats = await bookSeats(numberOfSeats, session.user.id);
+    // Book the seats
+    const bookedSeats = await bookSeats(seatNumbers, session.user.id);
 
     return NextResponse.json({ seats: bookedSeats });
   } catch (error) {

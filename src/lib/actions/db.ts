@@ -7,6 +7,13 @@ interface Seat {
   isBooked: boolean;
 }
 
+interface SeatRow {
+  id: string;
+  seatNumber: number;
+  rowNumber: number;
+  isBooked: boolean;
+}
+
 export async function getUser(email: string) {
   try {
     const user = await prisma.user.findUnique({
@@ -73,30 +80,14 @@ export async function getSeatLayout() {
   }
 }
 
-export async function bookSeats(numberOfSeats: number, userId: string) {
+export async function bookSeats(seatNumbers: number[], userId: string) {
   try {
-    // Find first available consecutive seats
-    const availableSeats = await prisma.seat.findMany({
-      where: {
-        userId: null,
-        bookingId: null,
-      },
-      orderBy: {
-        seatNumber: "asc",
-      },
-      take: numberOfSeats,
-    });
-
-    if (availableSeats.length < numberOfSeats) {
-      throw new Error("Not enough consecutive seats available");
-    }
-    console.log("availableSeats::", availableSeats);
-    // Book the seats
     const bookingId = Math.random().toString(36).substring(7);
-    await prisma.seat.updateMany({
+
+    const updatedSeats = await prisma.seat.updateMany({
       where: {
         seatNumber: {
-          in: availableSeats.map((seat: Seat) => seat.seatNumber),
+          in: seatNumbers,
         },
       },
       data: {
@@ -106,9 +97,13 @@ export async function bookSeats(numberOfSeats: number, userId: string) {
       },
     });
 
+    if (updatedSeats.count !== seatNumbers.length) {
+      throw new Error("Some seats are no longer available");
+    }
+
     return {
       bookingId,
-      seats: availableSeats.map((seat: Seat) => seat.seatNumber),
+      seats: seatNumbers,
     };
   } catch (error) {
     console.error("Booking Error:", error);
@@ -134,27 +129,67 @@ export async function resetBooking(userId: string) {
   }
 }
 
-export async function findConsecutiveSeats(count: number) {
-  try {
-    const seats = await prisma.seat.findMany({
-      where: { isBooked: false },
-      orderBy: { seatNumber: "asc" },
-    });
+export async function markSeatsInProgress(seatNumbers: number[]) {
+  return await prisma.seat.updateMany({
+    where: { seatNumber: { in: seatNumbers } },
+    data: { isBooked: true },
+  });
+}
 
-    for (let i = 0; i <= seats.length - count; i++) {
-      const consecutive = seats.slice(i, i + count);
-      if (
-        consecutive.length === count &&
-        consecutive.every(
-          (seat: { seatNumber: number }, index: number) =>
-            seat.seatNumber === consecutive[0].seatNumber + index
-        )
-      ) {
-        return consecutive.map(
-          (seat: { seatNumber: number }) => seat.seatNumber
-        );
+export async function findConsecutiveSeatsInRow(numberOfSeats: number) {
+  try {
+    const allSeats = await prisma.seat.findMany({
+      where: {
+        isBooked: false,
+      },
+      orderBy: [{ rowNumber: "asc" }, { seatNumber: "asc" }],
+    });
+    // Group seats by row
+    const seatsByRow = allSeats.reduce(
+      (acc: { [key: number]: SeatRow[] }, seat: SeatRow) => {
+        if (!acc[seat.rowNumber]) {
+          acc[seat.rowNumber] = [];
+        }
+        acc[seat.rowNumber].push(seat);
+        return acc;
+      },
+      {}
+    );
+
+    // Find first row with enough consecutive seats
+    for (const rowNumber in seatsByRow) {
+      const rowSeats = seatsByRow[rowNumber];
+
+      // Skip if row doesn't have enough seats
+      if (rowSeats.length < numberOfSeats) continue;
+
+      let consecutiveSeats = [];
+      let currentStreak = [];
+      let startOfRow = (parseInt(rowNumber) - 1) * 7 + 1;
+
+      for (let i = 0; i < rowSeats.length; i++) {
+        const expectedSeatNumber =
+          startOfRow + (currentStreak.length > 0 ? currentStreak.length : 0);
+
+        if (rowSeats[i].seatNumber === expectedSeatNumber) {
+          currentStreak.push(rowSeats[i]);
+        } else {
+          currentStreak = [rowSeats[i]];
+          startOfRow = rowSeats[i].seatNumber;
+        }
+
+        if (currentStreak.length === numberOfSeats) {
+          consecutiveSeats = currentStreak;
+          break;
+        }
+      }
+
+      if (consecutiveSeats.length === numberOfSeats) {
+        return consecutiveSeats;
       }
     }
+
+    // If no consecutive seats in a row, return null
     return null;
   } catch (error) {
     console.error("Error finding consecutive seats:", error);
@@ -162,9 +197,64 @@ export async function findConsecutiveSeats(count: number) {
   }
 }
 
-export async function markSeatsInProgress(seatNumbers: number[]) {
-  return await prisma.seat.updateMany({
-    where: { seatNumber: { in: seatNumbers } },
-    data: { isBooked: true },
-  });
+export async function findConsecutiveSeats(count: number) {
+  try {
+    const seats = await prisma.seat.findMany({
+      where: { isBooked: false },
+      orderBy: [{ rowNumber: "asc" }, { seatNumber: "asc" }],
+    });
+
+    // Group seats by row
+    const seatsByRow = seats.reduce(
+      (acc: { [key: number]: Seat[] }, seat: any) => {
+        if (!acc[seat.rowNumber]) {
+          acc[seat.rowNumber] = [];
+        }
+        acc[seat.rowNumber].push(seat);
+        return acc;
+      },
+      {}
+    );
+
+    // Check each row for enough consecutive seats
+    for (const rowNumber in seatsByRow) {
+      const rowSeats = seatsByRow[rowNumber];
+
+      // Skip if row doesn't have enough seats
+      if (rowSeats.length < count) continue;
+
+      // Find consecutive seats in current row
+      let consecutiveSeats = [];
+      let currentStreak = [];
+      let startOfRow = (parseInt(rowNumber) - 1) * 7 + 1; // Calculate first seat number of the row
+
+      for (let i = 0; i < rowSeats.length; i++) {
+        const expectedSeatNumber =
+          startOfRow + (currentStreak.length > 0 ? currentStreak.length : 0);
+
+        if (rowSeats[i].seatNumber === expectedSeatNumber) {
+          currentStreak.push(rowSeats[i].seatNumber);
+        } else {
+          currentStreak = [rowSeats[i].seatNumber];
+          startOfRow = rowSeats[i].seatNumber;
+        }
+
+        if (currentStreak.length === count) {
+          consecutiveSeats = currentStreak;
+          break;
+        }
+      }
+
+      // If we found enough consecutive seats in this row, return them
+      if (consecutiveSeats.length === count) {
+        return consecutiveSeats;
+      }
+    }
+
+    // If no row has enough consecutive seats, return null
+    return null;
+  } catch (error) {
+    console.error("Error finding consecutive seats:", error);
+    return null;
+  }
 }
