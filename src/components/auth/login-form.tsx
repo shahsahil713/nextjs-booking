@@ -17,6 +17,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 
 export function LoginForm() {
   const { toast } = useToast();
@@ -31,35 +32,13 @@ export function LoginForm() {
 
   async function onSubmit(data: LoginFormData) {
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(data),
+      const result = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirect: true,
+        callbackUrl: "/",
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: result.error || "Invalid credentials",
-        });
-        return;
-      }
-
-      document.cookie = `user-token=${result.token}; path=/`;
-
-      toast({
-        title: "Success",
-        description: "Logged in successfully",
-      });
-      router.push("/");
     } catch (error) {
-      console.error("Login error:", error);
       toast({
         variant: "destructive",
         title: "Error",

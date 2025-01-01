@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { LoginFormData, RegisterFormData } from "@/lib/auth";
 
@@ -9,7 +9,7 @@ interface Seat {
 
 export async function getUser(email: string) {
   try {
-    const user = await db.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { email },
     });
     return user;
@@ -23,7 +23,7 @@ export async function createUser(data: RegisterFormData) {
   try {
     const hashedPassword = await hashPassword(data.password);
 
-    const user = await db.user.create({
+    const user = await prisma.user.create({
       data: {
         email: data.email,
         name: data.name,
@@ -40,9 +40,9 @@ export async function createUser(data: RegisterFormData) {
 export async function getSeatLayout() {
   try {
     // Test connection first
-    await db.$connect();
+    await prisma.$connect();
 
-    const seats = await db.seat.findMany({
+    const seats = await prisma.seat.findMany({
       orderBy: {
         seatNumber: "asc",
       },
@@ -56,7 +56,7 @@ export async function getSeatLayout() {
         isBooked: false,
       }));
 
-      await db.seat.createMany({
+      await prisma.seat.createMany({
         data: seatsToCreate,
       });
 
@@ -69,17 +69,17 @@ export async function getSeatLayout() {
     // Return empty array instead of throwing to prevent page crash
     return [];
   } finally {
-    await db.$disconnect();
+    await prisma.$disconnect();
   }
 }
 
 export async function bookSeats(numberOfSeats: number, userId: string) {
   try {
-    console.log("userId::", userId);
     // Find first available consecutive seats
-    const availableSeats = await db.seat.findMany({
+    const availableSeats = await prisma.seat.findMany({
       where: {
-        isBooked: false,
+        userId: null,
+        bookingId: null,
       },
       orderBy: {
         seatNumber: "asc",
@@ -90,10 +90,10 @@ export async function bookSeats(numberOfSeats: number, userId: string) {
     if (availableSeats.length < numberOfSeats) {
       throw new Error("Not enough consecutive seats available");
     }
-
+    console.log("availableSeats::", availableSeats);
     // Book the seats
     const bookingId = Math.random().toString(36).substring(7);
-    await db.seat.updateMany({
+    await prisma.seat.updateMany({
       where: {
         seatNumber: {
           in: availableSeats.map((seat: Seat) => seat.seatNumber),
@@ -116,11 +116,11 @@ export async function bookSeats(numberOfSeats: number, userId: string) {
   }
 }
 
-export async function resetBooking(bookingId: string) {
+export async function resetBooking(userId: string) {
   try {
-    await db.seat.updateMany({
+    await prisma.seat.updateMany({
       where: {
-        bookingId,
+        userId: userId,
       },
       data: {
         isBooked: false,
@@ -136,7 +136,7 @@ export async function resetBooking(bookingId: string) {
 
 export async function findConsecutiveSeats(count: number) {
   try {
-    const seats = await db.seat.findMany({
+    const seats = await prisma.seat.findMany({
       where: { isBooked: false },
       orderBy: { seatNumber: "asc" },
     });
@@ -163,7 +163,7 @@ export async function findConsecutiveSeats(count: number) {
 }
 
 export async function markSeatsInProgress(seatNumbers: number[]) {
-  return await db.seat.updateMany({
+  return await prisma.seat.updateMany({
     where: { seatNumber: { in: seatNumbers } },
     data: { isBooked: true },
   });

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createUser } from "@/lib/actions/db";
 import { registerSchema } from "@/lib/auth";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/db";
 
 export async function POST(request: Request) {
   try {
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
     // Test database connection
     try {
-      await db.$connect();
+      await prisma.$connect();
       console.log("Database connection successful");
     } catch (dbError) {
       console.error("Database connection failed:", dbError);

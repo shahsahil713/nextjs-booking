@@ -57,7 +57,6 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
         },
         body: JSON.stringify({
           numberOfSeats: seatCount,
-          userId: "user-id", // Get this from your auth context
         }),
       });
 
@@ -66,10 +65,11 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
       if (!response.ok) {
         throw new Error(data.error);
       }
-
       toast({
         title: "Success",
-        description: `Successfully booked seats: ${data.seats.join(", ")}`,
+        description: `Successfully booked seats: ${data.seats.seats.join(
+          ", "
+        )}`,
       });
       setNumberOfSeats("");
 
@@ -81,6 +81,38 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
         title: "Booking failed",
         description:
           error instanceof Error ? error.message : "Failed to book seats",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReset = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/seats/reset", {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: "Success",
+        description: "Successfully reset your bookings",
+      });
+
+      // Refresh the page to show updated seat status
+      window.location.reload();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Reset failed",
+        description:
+          error instanceof Error ? error.message : "Failed to reset seats",
       });
     } finally {
       setIsLoading(false);
@@ -146,9 +178,10 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
           variant="outline"
           size="sm"
           className="w-full"
-          onClick={() => window.location.reload()}
+          onClick={handleReset}
+          disabled={isLoading}
         >
-          Reset
+          {isLoading ? "Resetting..." : "Reset My Bookings"}
         </Button>
       </div>
     </div>
