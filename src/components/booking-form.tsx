@@ -5,17 +5,45 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
-export function BookingForm() {
+interface BookingFormProps {
+  maxSeats: number;
+}
+
+export function BookingForm({ maxSeats }: BookingFormProps) {
   const [numberOfSeats, setNumberOfSeats] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const handleBooking = async () => {
-    if (!numberOfSeats || parseInt(numberOfSeats) < 1) {
+    // Basic input validation
+
+    if (!numberOfSeats || numberOfSeats.trim() === "") {
+      toast({
+        variant: "destructive",
+        title: "Invalid input",
+        description: "Please enter number of seats",
+      });
+      return;
+    }
+
+    const seatCount = parseInt(numberOfSeats);
+
+    // Validate seat count
+    if (isNaN(seatCount) || seatCount < 1) {
       toast({
         variant: "destructive",
         title: "Invalid input",
         description: "Please enter a valid number of seats",
+      });
+      return;
+    }
+
+    // Check maximum seat limit
+    if (seatCount > maxSeats) {
+      toast({
+        variant: "destructive",
+        title: "Exceeds limit",
+        description: `You can only book up to ${maxSeats} seats at a time`,
       });
       return;
     }
@@ -28,7 +56,7 @@ export function BookingForm() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          numberOfSeats: parseInt(numberOfSeats),
+          numberOfSeats: seatCount,
           userId: "user-id", // Get this from your auth context
         }),
       });
@@ -78,16 +106,26 @@ export function BookingForm() {
       <div className="space-y-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Number of Seats
+            Number of Seats (Max: {maxSeats})
           </label>
           <div className="flex gap-2">
             <Input
               type="number"
               min="1"
-              max="80"
+              max={maxSeats}
               value={numberOfSeats}
-              onChange={(e) => setNumberOfSeats(e.target.value)}
-              placeholder="Enter seats"
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "") {
+                  setNumberOfSeats("");
+                  return;
+                }
+                const numValue = parseInt(value);
+                if (!isNaN(numValue)) {
+                  setNumberOfSeats(value);
+                }
+              }}
+              placeholder={`1-${maxSeats} seats`}
               className="flex-1"
             />
             <Button

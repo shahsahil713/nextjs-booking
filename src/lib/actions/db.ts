@@ -75,6 +75,7 @@ export async function getSeatLayout() {
 
 export async function bookSeats(numberOfSeats: number, userId: string) {
   try {
+    console.log("userId::", userId);
     // Find first available consecutive seats
     const availableSeats = await db.seat.findMany({
       where: {
@@ -131,4 +132,39 @@ export async function resetBooking(bookingId: string) {
     console.error("Reset Booking Error:", error);
     throw error;
   }
+}
+
+export async function findConsecutiveSeats(count: number) {
+  try {
+    const seats = await db.seat.findMany({
+      where: { isBooked: false },
+      orderBy: { seatNumber: "asc" },
+    });
+
+    for (let i = 0; i <= seats.length - count; i++) {
+      const consecutive = seats.slice(i, i + count);
+      if (
+        consecutive.length === count &&
+        consecutive.every(
+          (seat: { seatNumber: number }, index: number) =>
+            seat.seatNumber === consecutive[0].seatNumber + index
+        )
+      ) {
+        return consecutive.map(
+          (seat: { seatNumber: number }) => seat.seatNumber
+        );
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Error finding consecutive seats:", error);
+    return null;
+  }
+}
+
+export async function markSeatsInProgress(seatNumbers: number[]) {
+  return await db.seat.updateMany({
+    where: { seatNumber: { in: seatNumbers } },
+    data: { isBooked: true },
+  });
 }
