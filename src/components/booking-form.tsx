@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 interface BookingFormProps {
   maxSeats: number;
@@ -12,7 +13,16 @@ interface BookingFormProps {
 export function BookingForm({ maxSeats }: BookingFormProps) {
   const [numberOfSeats, setNumberOfSeats] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [lastBookedSeats, setLastBookedSeats] = useState<string[]>([]);
   const { toast } = useToast();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const refreshPage = () => {
+    startTransition(() => {
+      router.refresh();
+    });
+  };
 
   const handleBooking = async () => {
     // Basic input validation
@@ -65,6 +75,10 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
       if (!response.ok) {
         throw new Error(data.error);
       }
+
+      // Update the last booked seats
+      setLastBookedSeats(data.seats.seats);
+
       toast({
         title: "Success",
         description: `Successfully booked seats: ${data.seats.seats.join(
@@ -73,8 +87,7 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
       });
       setNumberOfSeats("");
 
-      // Refresh the page to show updated seat status
-      window.location.reload();
+      refreshPage();
     } catch (error) {
       toast({
         variant: "destructive",
@@ -105,8 +118,9 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
         description: "Successfully reset your bookings",
       });
 
-      // Refresh the page to show updated seat status
-      window.location.reload();
+      // Refresh the page instead of using callback
+      refreshPage();
+      setLastBookedSeats([]); // Clear last booked seats on reset
     } catch (error) {
       toast({
         variant: "destructive",
@@ -134,6 +148,15 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
           </div>
         </div>
       </div>
+
+      {lastBookedSeats.length > 0 && (
+        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+          <p className="text-sm text-green-800">
+            <span className="font-medium">Latest booking:</span> Seats{" "}
+            {lastBookedSeats.join(", ")}
+          </p>
+        </div>
+      )}
 
       <div className="space-y-3">
         <div>

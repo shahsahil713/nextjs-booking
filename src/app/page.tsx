@@ -11,7 +11,7 @@ export default async function Home() {
   const seats = await getSeatLayout();
   const totalSeats = 80;
   const seatsPerRow = 7;
-  const lastRowSeats = totalSeats % seatsPerRow; // This will be 3
+  const lastRowSeats = totalSeats % seatsPerRow;
 
   return (
     <main className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 to-gray-100">
