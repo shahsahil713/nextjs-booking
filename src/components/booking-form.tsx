@@ -134,36 +134,40 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900">Book Seats</h2>
-        <div className="mt-1 flex items-center gap-2">
+    <div className="h-full flex flex-col max-h-[calc(100vh-80px)]">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-sm sm:text-base font-semibold text-gray-900">
+          Book Seats
+        </h2>
+        <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-green-100 border border-green-600"></div>
-            <span className="text-xs text-gray-500">Available</span>
+            <div className="w-2 h-2 rounded bg-green-100 border border-green-600"></div>
+            <span className="text-[10px] sm:text-xs text-gray-500">
+              Available
+            </span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-red-100 border border-red-600"></div>
-            <span className="text-xs text-gray-500">Booked</span>
+            <div className="w-2 h-2 rounded bg-red-100 border border-red-600"></div>
+            <span className="text-[10px] sm:text-xs text-gray-500">Booked</span>
           </div>
         </div>
       </div>
 
       {lastBookedSeats.length > 0 && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-          <p className="text-sm text-green-800">
+        <div className="p-1.5 bg-green-50 border border-green-200 rounded-md mb-2">
+          <p className="text-[10px] sm:text-xs text-green-800">
             <span className="font-medium">Latest booking:</span> Seats{" "}
             {lastBookedSeats.join(", ")}
           </p>
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-1.5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-[10px] sm:text-xs font-medium text-gray-700">
             Number of Seats (Max: {maxSeats})
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-1">
             <Input
               type="number"
               min="1"
@@ -181,15 +185,15 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
                 }
               }}
               placeholder={`1-${maxSeats} seats`}
-              className="flex-1"
+              className="flex-1 h-8 text-xs sm:text-sm"
             />
             <Button
               onClick={handleBooking}
               disabled={isLoading}
-              className="w-16"
+              className="w-16 h-8 text-xs sm:text-sm"
             >
               {isLoading ? (
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 "Book"
               )}
@@ -200,7 +204,7 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
         <Button
           variant="outline"
           size="sm"
-          className="w-full"
+          className="w-full h-7 text-[10px] sm:text-xs"
           onClick={handleReset}
           disabled={isLoading}
         >
