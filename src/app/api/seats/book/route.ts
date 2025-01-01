@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const seatNumbers = availableSeats.map((seat) => seat.seatNumber);
+    const seatNumbers = availableSeats.map((seat: any) => seat.seatNumber);
     // Mark seats as in-progress
     await markSeatsInProgress(seatNumbers);
 

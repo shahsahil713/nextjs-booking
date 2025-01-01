@@ -144,55 +144,74 @@ export async function findConsecutiveSeatsInRow(numberOfSeats: number) {
       },
       orderBy: [{ rowNumber: "asc" }, { seatNumber: "asc" }],
     });
-    // Group seats by row
-    const seatsByRow = allSeats.reduce(
-      (acc: { [key: number]: SeatRow[] }, seat: SeatRow) => {
-        if (!acc[seat.rowNumber]) {
-          acc[seat.rowNumber] = [];
-        }
-        acc[seat.rowNumber].push(seat);
-        return acc;
-      },
-      {}
-    );
 
-    // Find first row with enough consecutive seats
-    for (const rowNumber in seatsByRow) {
-      const rowSeats = seatsByRow[rowNumber];
+    // Priority 1: Find consecutive seats in a single row
+    let currentRow = 1;
+    let consecutiveInRow = [];
 
-      // Skip if row doesn't have enough seats
-      if (rowSeats.length < numberOfSeats) continue;
-
-      let consecutiveSeats = [];
-      let currentStreak = [];
-      let startOfRow = (parseInt(rowNumber) - 1) * 7 + 1;
-
-      for (let i = 0; i < rowSeats.length; i++) {
-        const expectedSeatNumber =
-          startOfRow + (currentStreak.length > 0 ? currentStreak.length : 0);
-
-        if (rowSeats[i].seatNumber === expectedSeatNumber) {
-          currentStreak.push(rowSeats[i]);
-        } else {
-          currentStreak = [rowSeats[i]];
-          startOfRow = rowSeats[i].seatNumber;
-        }
-
-        if (currentStreak.length === numberOfSeats) {
-          consecutiveSeats = currentStreak;
-          break;
-        }
+    for (const seat of allSeats) {
+      if (seat.rowNumber !== currentRow) {
+        consecutiveInRow = [];
+        currentRow = seat.rowNumber;
       }
 
-      if (consecutiveSeats.length === numberOfSeats) {
-        return consecutiveSeats;
+      if (
+        consecutiveInRow.length === 0 ||
+        seat.seatNumber ===
+          consecutiveInRow[consecutiveInRow.length - 1].seatNumber + 1
+      ) {
+        consecutiveInRow.push(seat);
+      } else {
+        consecutiveInRow = [seat];
+      }
+
+      if (consecutiveInRow.length === numberOfSeats) {
+        return consecutiveInRow;
       }
     }
 
-    // If no consecutive seats in a row, return null
+    // Priority 2: Find seats in sequence across rows
+    let sequentialSeats = [];
+    for (let i = 0; i < allSeats.length; i++) {
+      if (
+        sequentialSeats.length === 0 ||
+        allSeats[i].seatNumber ===
+          sequentialSeats[sequentialSeats.length - 1].seatNumber + 1
+      ) {
+        sequentialSeats.push(allSeats[i]);
+        if (sequentialSeats.length === numberOfSeats) {
+          return sequentialSeats;
+        }
+      } else {
+        // If sequence breaks, start new sequence from current seat
+        sequentialSeats = [allSeats[i]];
+      }
+    }
+
+    // Priority 3: Find nearest group of available seats
+    if (allSeats.length >= numberOfSeats) {
+      // Find the group with minimum distance between first and last seat
+      let bestGroup = allSeats.slice(0, numberOfSeats);
+      let minDistance =
+        bestGroup[numberOfSeats - 1].seatNumber - bestGroup[0].seatNumber;
+
+      for (let i = 1; i <= allSeats.length - numberOfSeats; i++) {
+        const group = allSeats.slice(i, i + numberOfSeats);
+        const distance =
+          group[numberOfSeats - 1].seatNumber - group[0].seatNumber;
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          bestGroup = group;
+        }
+      }
+
+      return bestGroup;
+    }
+
     return null;
   } catch (error) {
-    console.error("Error finding consecutive seats:", error);
+    console.error("Error finding seats:", error);
     return null;
   }
 }
