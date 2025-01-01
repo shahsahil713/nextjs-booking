@@ -235,17 +235,13 @@ export async function findConsecutiveSeats(count: number) {
       {}
     );
 
-    // Check each row for enough consecutive seats
+    // Find all available consecutive groups in each row
+    let availableGroups: number[][] = [];
+
     for (const rowNumber in seatsByRow) {
       const rowSeats = seatsByRow[rowNumber];
-
-      // Skip if row doesn't have enough seats
-      if (rowSeats.length < count) continue;
-
-      // Find consecutive seats in current row
-      let consecutiveSeats = [];
       let currentStreak = [];
-      let startOfRow = (parseInt(rowNumber) - 1) * 7 + 1; // Calculate first seat number of the row
+      let startOfRow = (parseInt(rowNumber) - 1) * 7 + 1;
 
       for (let i = 0; i < rowSeats.length; i++) {
         const expectedSeatNumber =
@@ -254,23 +250,35 @@ export async function findConsecutiveSeats(count: number) {
         if (rowSeats[i].seatNumber === expectedSeatNumber) {
           currentStreak.push(rowSeats[i].seatNumber);
         } else {
+          // If we have a streak, add it to available groups
+          if (currentStreak.length >= count) {
+            availableGroups.push([...currentStreak]);
+          }
           currentStreak = [rowSeats[i].seatNumber];
           startOfRow = rowSeats[i].seatNumber;
         }
-
-        if (currentStreak.length === count) {
-          consecutiveSeats = currentStreak;
-          break;
-        }
       }
 
-      // If we found enough consecutive seats in this row, return them
-      if (consecutiveSeats.length === count) {
-        return consecutiveSeats;
+      // Check the last streak in the row
+      if (currentStreak.length >= count) {
+        availableGroups.push(currentStreak);
       }
     }
 
-    // If no row has enough consecutive seats, return null
+    // Sort groups by size to find the smallest suitable group
+    availableGroups.sort((a, b) => a.length - b.length);
+
+    // Find the smallest group that can accommodate the requested count
+    const suitableGroup = availableGroups.find(
+      (group) => group.length >= count
+    );
+
+    if (suitableGroup) {
+      // Return only the requested number of seats from the group
+      return suitableGroup.slice(0, count);
+    }
+
+    // If no suitable group found, return null
     return null;
   } catch (error) {
     console.error("Error finding consecutive seats:", error);
