@@ -3,10 +3,14 @@ import { hashPassword } from "@/lib/auth";
 import { RegisterFormData } from "@/lib/auth";
 
 interface SeatRow {
-  id: string;
+  id: number;
   seatNumber: number;
   rowNumber: number;
   isBooked: boolean;
+  userId: string | null;
+  bookingId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export async function getUser(email: string) {
@@ -144,7 +148,7 @@ export async function findConsecutiveSeatsInRow(
 
     // Priority 1: Find consecutive seats in a single row
     let currentRow = 1;
-    let consecutiveInRow = [];
+    let consecutiveInRow: typeof allSeats = [];
 
     for (const seat of allSeats) {
       if (seat.rowNumber !== currentRow) {
@@ -168,7 +172,7 @@ export async function findConsecutiveSeatsInRow(
     }
 
     // Priority 2: Find seats in sequence across rows
-    let sequentialSeats = [];
+    let sequentialSeats: typeof allSeats = [];
     for (let i = 0; i < allSeats.length; i++) {
       if (
         sequentialSeats.length === 0 ||

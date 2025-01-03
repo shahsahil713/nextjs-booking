@@ -208,7 +208,7 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
           onClick={handleReset}
           disabled={isLoading}
         >
-          {isLoading ? "Resetting..." : "Reset My Bookings"}
+          Reset My Bookings
         </Button>
       </div>
     </div>
