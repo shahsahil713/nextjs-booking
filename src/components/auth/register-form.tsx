@@ -32,7 +32,6 @@ export function RegisterForm() {
 
   async function onSubmit(data: RegisterFormData) {
     try {
-      console.log("Submitting registration form:", data);
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
@@ -42,9 +41,7 @@ export function RegisterForm() {
         body: JSON.stringify(data),
       });
 
-      console.log("Response status:", response.status);
       const result = await response.json();
-      console.log("Response data:", result);
 
       if (!response.ok) {
         toast({
@@ -117,7 +114,11 @@ export function RegisterForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
+            <Button
+              type="submit"
+              disabled={form.formState.isSubmitting}
+              className="w-full"
+            >
               Register
             </Button>
           </form>

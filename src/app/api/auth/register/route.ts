@@ -5,12 +5,9 @@ import { prisma } from "@/lib/db";
 
 export async function POST(request: Request) {
   try {
-    console.log("Register route hit - POST method");
-
     // Test database connection
     try {
       await prisma.$connect();
-      console.log("Database connection successful");
     } catch (dbError) {
       console.error("Database connection failed:", dbError);
       return NextResponse.json(
@@ -20,11 +17,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    console.log("Received data:", body);
 
     try {
       const validatedData = registerSchema.parse(body);
-      console.log("Validated data:", validatedData);
 
       const user = await createUser(validatedData);
       return NextResponse.json({ user });
