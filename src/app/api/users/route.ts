@@ -13,6 +13,7 @@ export async function GET(request: Request) {
     const user = await getUser(email);
     return NextResponse.json(user);
   } catch (error) {
+    console.error("Failed to fetch user:", error);
     return NextResponse.json(
       { error: "Failed to fetch user" },
       { status: 500 }

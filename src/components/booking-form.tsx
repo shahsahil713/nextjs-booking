@@ -16,7 +16,7 @@ export function BookingForm({ maxSeats }: BookingFormProps) {
   const [lastBookedSeats, setLastBookedSeats] = useState<string[]>([]);
   const { toast } = useToast();
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const refreshPage = () => {
     startTransition(() => {

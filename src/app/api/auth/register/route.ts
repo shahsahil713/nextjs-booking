@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createUser } from "@/lib/actions/db";
 import { registerSchema } from "@/lib/auth";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { prisma } from "@/lib/db";
 
 export async function POST(request: Request) {

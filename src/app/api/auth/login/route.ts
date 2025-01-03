@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       token,
     });
   } catch (error) {
+    console.error("Login error:", error);
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }

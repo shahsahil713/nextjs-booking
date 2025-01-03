@@ -1,11 +1,6 @@
 import { prisma } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
-import { LoginFormData, RegisterFormData } from "@/lib/auth";
-
-interface Seat {
-  seatNumber: number;
-  isBooked: boolean;
-}
+import { RegisterFormData } from "@/lib/auth";
 
 interface SeatRow {
   id: string;
@@ -136,7 +131,9 @@ export async function markSeatsInProgress(seatNumbers: number[]) {
   });
 }
 
-export async function findConsecutiveSeatsInRow(numberOfSeats: number) {
+export async function findConsecutiveSeatsInRow(
+  numberOfSeats: number
+): Promise<SeatRow[] | null> {
   try {
     const allSeats = await prisma.seat.findMany({
       where: {
@@ -212,76 +209,6 @@ export async function findConsecutiveSeatsInRow(numberOfSeats: number) {
     return null;
   } catch (error) {
     console.error("Error finding seats:", error);
-    return null;
-  }
-}
-
-export async function findConsecutiveSeats(count: number) {
-  try {
-    const seats = await prisma.seat.findMany({
-      where: { isBooked: false },
-      orderBy: [{ rowNumber: "asc" }, { seatNumber: "asc" }],
-    });
-
-    // Group seats by row
-    const seatsByRow = seats.reduce(
-      (acc: { [key: number]: Seat[] }, seat: any) => {
-        if (!acc[seat.rowNumber]) {
-          acc[seat.rowNumber] = [];
-        }
-        acc[seat.rowNumber].push(seat);
-        return acc;
-      },
-      {}
-    );
-
-    // Find all available consecutive groups in each row
-    let availableGroups: number[][] = [];
-
-    for (const rowNumber in seatsByRow) {
-      const rowSeats = seatsByRow[rowNumber];
-      let currentStreak = [];
-      let startOfRow = (parseInt(rowNumber) - 1) * 7 + 1;
-
-      for (let i = 0; i < rowSeats.length; i++) {
-        const expectedSeatNumber =
-          startOfRow + (currentStreak.length > 0 ? currentStreak.length : 0);
-
-        if (rowSeats[i].seatNumber === expectedSeatNumber) {
-          currentStreak.push(rowSeats[i].seatNumber);
-        } else {
-          // If we have a streak, add it to available groups
-          if (currentStreak.length >= count) {
-            availableGroups.push([...currentStreak]);
-          }
-          currentStreak = [rowSeats[i].seatNumber];
-          startOfRow = rowSeats[i].seatNumber;
-        }
-      }
-
-      // Check the last streak in the row
-      if (currentStreak.length >= count) {
-        availableGroups.push(currentStreak);
-      }
-    }
-
-    // Sort groups by size to find the smallest suitable group
-    availableGroups.sort((a, b) => a.length - b.length);
-
-    // Find the smallest group that can accommodate the requested count
-    const suitableGroup = availableGroups.find(
-      (group) => group.length >= count
-    );
-
-    if (suitableGroup) {
-      // Return only the requested number of seats from the group
-      return suitableGroup.slice(0, count);
-    }
-
-    // If no suitable group found, return null
-    return null;
-  } catch (error) {
-    console.error("Error finding consecutive seats:", error);
     return null;
   }
 }
